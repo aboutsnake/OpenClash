@@ -4,9 +4,9 @@ status=$(ps|grep -c /usr/share/openclash/yml_proxys_get.sh)
 
 START_LOG="/tmp/openclash_start.log"
 CONFIG_FILE=$(uci get openclash.config.config_path 2>/dev/null)
-CONFIG_NAME=$(echo $CONFIG_FILE |awk -F '/' '{print $5}' 2>/dev/null)
+CONFIG_NAME=$(echo "$CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
 UPDATE_CONFIG_FILE=$(uci get openclash.config.config_update_path 2>/dev/null)
-UPDATE_CONFIG_NAME=$(echo $UPDATE_CONFIG_FILE |awk -F '/' '{print $5}' 2>/dev/null)
+UPDATE_CONFIG_NAME=$(echo "$UPDATE_CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
 
 if [ ! -z "$UPDATE_CONFIG_FILE" ]; then
    CONFIG_FILE="$UPDATE_CONFIG_FILE"
@@ -15,7 +15,7 @@ fi
 
 if [ -z "$CONFIG_FILE" ]; then
 	CONFIG_FILE="/etc/openclash/config/$(ls -lt /etc/openclash/config/ | grep -E '.yaml|.yml' | head -n 1 |awk '{print $9}')"
-	CONFIG_NAME=$(echo $CONFIG_FILE |awk -F '/' '{print $5}' 2>/dev/null)
+	CONFIG_NAME=$(echo "$CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)
 fi
 
 if [ -z "$CONFIG_NAME" ]; then
@@ -23,12 +23,12 @@ if [ -z "$CONFIG_NAME" ]; then
    CONFIG_NAME="config.yaml"
 fi
 
-BACKUP_FILE="/etc/openclash/backup/$(echo $CONFIG_FILE |awk -F '/' '{print $5}' 2>/dev/null)"
+BACKUP_FILE="/etc/openclash/backup/$(echo "$CONFIG_FILE" |awk -F '/' '{print $5}' 2>/dev/null)"
 
-if [ ! -s $CONFIG_FILE ] && [ ! -s $BACKUP_FILE ]; then
+if [ ! -s "$CONFIG_FILE" ] && [ ! -s "$BACKUP_FILE" ]; then
    exit 0
-elif [ ! -s $CONFIG_FILE ] && [ -s $BACKUP_FILE ]; then
-   mv $BACKUP_FILE $CONFIG_FILE
+elif [ ! -s "$CONFIG_FILE" ] && [ -s "$BACKUP_FILE" ]; then
+   mv "$BACKUP_FILE" "$CONFIG_FILE"
 fi
 
 #判断各个区位置
@@ -45,6 +45,8 @@ elif [ "$provider_len" -le "$proxy_len" ]; then
 elif [ "$provider_len" -ge "$group_len" ]; then
 	 awk '/^ {0,}Proxy:/,/^ {0,}Proxy Group:/{print}' "$CONFIG_FILE" 2>/dev/null |sed 's/\"//g' 2>/dev/null |sed "s/\'//g" 2>/dev/null |sed 's/\t/ /g' 2>/dev/null >/tmp/yaml_proxy.yaml 2>&1
    awk '/^ {0,}proxy-provider:/,/^ {0,}Rule:/{print}' "$CONFIG_FILE" 2>/dev/null |sed 's/\"//g' 2>/dev/null |sed "s/\'//g" 2>/dev/null |sed 's/\t/ /g' 2>/dev/null >/tmp/yaml_provider.yaml 2>&1
+elif [ "$provider_len" -le "$group_len" ]; then
+   awk '/^ {0,}proxy-provider:/,/^ {0,}Proxy Group:/{print}' "$CONFIG_FILE" 2>/dev/null |sed 's/\"//g' 2>/dev/null |sed "s/\'//g" 2>/dev/null |sed 's/\t/ /g' 2>/dev/null >/tmp/yaml_provider.yaml 2>&1
 else
    awk '/^ {0,}Proxy:/,/^ {0,}Proxy Group:/{print}' "$CONFIG_FILE" 2>/dev/null |sed 's/\"//g' 2>/dev/null |sed "s/\'//g" 2>/dev/null |sed 's/\t/ /g' 2>/dev/null >/tmp/yaml_proxy.yaml 2>&1
 fi
@@ -163,7 +165,11 @@ do
       ${uci_set}manual="0"
       ${uci_set}name="$provider_name"
       ${uci_set}type="$provider_type"
-      ${uci_set}path="$provider_path"
+      if [ "$provider_type" = "http" ]; then
+         ${uci_set}path="./proxy_provider/$provider_name.yaml"
+      elif [ "$provider_type" = "file" ]; then
+         ${uci_set}path="$provider_path"
+      fi
       ${uci_set}provider_url="$provider_gen_url"
       ${uci_set}provider_interval="$provider_gen_interval"
       ${uci_set}health_check="$provider_che_enable"
@@ -189,7 +195,11 @@ do
       ${uci_set}config="$CONFIG_NAME"
       ${uci_set}name="$provider_name"
       ${uci_set}type="$provider_type"
-      ${uci_set}path="$provider_path"
+      if [ "$provider_type" = "http" ]; then
+         ${uci_set}path="./proxy_provider/$provider_name.yaml"
+      elif [ "$provider_type" = "file" ]; then
+         ${uci_set}path="$provider_path"
+      fi
       ${uci_set}provider_url="$provider_gen_url"
       ${uci_set}provider_interval="$provider_gen_interval"
       ${uci_set}health_check="$provider_che_enable"
