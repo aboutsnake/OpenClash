@@ -1,7 +1,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-openclash
-PKG_VERSION:=0.36.5
+PKG_VERSION:=0.36.7
 PKG_RELEASE:=beta
 PKG_MAINTAINER:=vernesong <https://github.com/vernesong/OpenClash>
 
@@ -26,13 +26,14 @@ define Package/$(PKG_NAME)/postinst
 endef
 
 define Build/Prepare
+	$(CP) $(CURDIR)/files $(PKG_BUILD_DIR)
 	$(foreach po,$(wildcard ${CURDIR}/i18n/zh-cn/*.po), \
 		po2lmo $(po) $(PKG_BUILD_DIR)/$(patsubst %.po,%.lmo,$(notdir $(po)));)
-	chmod 0755 ${CURDIR}/files/etc/init.d/openclash
-	chmod -R 0755 ${CURDIR}/files/usr/share/openclash/
-	mkdir -p ${CURDIR}/files/etc/openclash/config >/dev/null 2>&1
-	mkdir -p ${CURDIR}/files/etc/openclash/proxy_provider >/dev/null 2>&1
-	mkdir -p ${CURDIR}/files/etc/openclash/backup >/dev/null 2>&1
+	chmod 0755 $(PKG_BUILD_DIR)/files/etc/init.d/openclash
+	chmod -R 0755 $(PKG_BUILD_DIR)/files/usr/share/openclash/
+	mkdir -p $(PKG_BUILD_DIR)/files/etc/openclash/config >/dev/null 2>&1
+	mkdir -p $(PKG_BUILD_DIR)/files/etc/openclash/proxy_provider >/dev/null 2>&1
+	mkdir -p $(PKG_BUILD_DIR)/files/etc/openclash/backup >/dev/null 2>&1
 endef
 
 define Build/Configure
@@ -98,6 +99,9 @@ fi
 mkdir -p /lib/upgrade/keep.d >/dev/null 2>&1
 cat > "/lib/upgrade/keep.d/luci-app-openclash" <<-EOF
 /etc/openclash/custom/
+/etc/openclash/config/
+/etc/openclash/game_rules/
+/etc/openclash/proxy_provider/
 EOF
 uci set openclash.config.enable=0 >/dev/null 2>&1
 uci commit openclash >/dev/null 2>&1
@@ -154,7 +158,7 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/i18n
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/*.*.lmo $(1)/usr/lib/lua/luci/i18n/
-	$(CP) ./files/* $(1)/
+	$(CP) $(PKG_BUILD_DIR)/files/* $(1)/
 endef
 
 $(eval $(call BuildPackage,$(PKG_NAME)))
